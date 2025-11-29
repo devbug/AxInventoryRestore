@@ -20,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.Map;
 
+import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.CONFIG;
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.LANG;
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.MESSAGEUTILS;
 
@@ -119,6 +120,12 @@ public class PreviewGui {
                         player.getInventory().setItem(n2, it);
                     n2++;
                 }
+
+                // Restore experience if enabled and not ender chest backup
+                if (!isEnder && CONFIG.getBoolean("experience.restore-with-inventory", true)) {
+                    player.setLevel(backupData.getExpLevel());
+                    player.setExp(backupData.getExpProgress());
+                }
             }));
 
             final int starterFinal = starter;
@@ -139,6 +146,31 @@ public class PreviewGui {
                 }));
                 previewGui.update();
             });
+
+            // Experience info item (slot 44) - only show if not ender chest backup
+            if (!isEnder) {
+                previewGui.setItem(44, new GuiItem(ItemBuilder.create(LANG.getSection("guis.previewgui.exp-info"),
+                        Map.of("%level%", String.valueOf(backupData.getExpLevel()),
+                                "%progress%", backupData.getExpProgressFormatted())).get(), event -> {
+                    event.setCancelled(true);
+
+                    if (!viewer.hasPermission("axinventoryrestore.restore")) {
+                        MESSAGEUTILS.sendLang(viewer, "errors.no-permission");
+                        return;
+                    }
+
+                    final Player player = Bukkit.getPlayer(backupData.getPlayerUUID());
+                    if (player == null) {
+                        MESSAGEUTILS.sendLang(viewer, "errors.player-offline");
+                        return;
+                    }
+
+                    // Restore experience only
+                    player.setLevel(backupData.getExpLevel());
+                    player.setExp(backupData.getExpProgress());
+                    MESSAGEUTILS.sendLang(viewer, "exp-restored", Map.of("%level%", String.valueOf(backupData.getExpLevel())));
+                }));
+            }
 
             if (discordAddon != null) {
                 previewGui.setItem(starter + 8, new GuiItem(discordAddon.getRequestItem(), event -> {

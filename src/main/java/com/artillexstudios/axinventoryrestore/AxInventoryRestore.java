@@ -26,6 +26,7 @@ import com.artillexstudios.axinventoryrestore.listeners.ListenerManager;
 import com.artillexstudios.axinventoryrestore.queue.PriorityThreadedQueue;
 import com.artillexstudios.axinventoryrestore.schedulers.AutoBackupScheduler;
 import com.artillexstudios.axinventoryrestore.schedulers.GuiUpdater;
+import com.artillexstudios.axinventoryrestore.utils.ConfigDefaults;
 import com.artillexstudios.axinventoryrestore.utils.UpdateNotifier;
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.SimplePie;
@@ -82,6 +83,9 @@ public final class AxInventoryRestore extends AxPlugin {
 
         CONFIG = new Config(new File(getDataFolder(), "config.yml"), getResource("config.yml"), GeneralSettings.builder().setUseDefaults(false).build(), LoaderSettings.builder().setAutoUpdate(true).build(), DumperSettings.DEFAULT, UpdaterSettings.builder().setKeepAll(true).setVersioning(new BasicVersioning("version")).build());
         LANG = new Config(new File(getDataFolder(), "messages.yml"), getResource("messages.yml"), GeneralSettings.builder().setUseDefaults(false).build(), LoaderSettings.builder().setAutoUpdate(true).build(), DumperSettings.DEFAULT, UpdaterSettings.builder().setKeepAll(true).setVersioning(new BasicVersioning("version")).build());
+        if (!ConfigDefaults.addMissing(CONFIG) || !ConfigDefaults.addMissing(LANG)) {
+            throw new IllegalStateException("Could not add missing configuration defaults!");
+        }
         DISCORD = new Config(new File(getDataFolder(), "discord.yml"), getResource("discord.yml"), GeneralSettings.builder().setUseDefaults(false).build(), LoaderSettings.builder().setAutoUpdate(true).build(), DumperSettings.DEFAULT, UpdaterSettings.builder().setKeepAll(true).setVersioning(new BasicVersioning("version")).build());
         new WebhookMigrator(DISCORD, "backup-create");
         new WebhookMigrator(DISCORD, "backup-restore");

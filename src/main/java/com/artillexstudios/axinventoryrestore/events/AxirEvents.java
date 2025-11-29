@@ -39,7 +39,8 @@ public class AxirEvents {
                         "%category%", LANG.getString("categories." + backupData.getReason() + ".raw", backupData.getReason()),
                         "%extrainfo%", backupData.getCause() == null ? "---" : backupData.getCause(),
                         "%location%", backupData.getLocation().getReadable(),
-                        "%date%", DateUtils.formatDate(backupData.getDate())
+                        "%date%", DateUtils.formatDate(backupData.getDate()),
+                        "%level%", String.valueOf(backupData.getExpLevel())
                 )
         );
         return inventoryRestoreEvent.isCancelled();
@@ -53,7 +54,8 @@ public class AxirEvents {
                         "%player%", backupData.getPlayerName(),
                         "%extrainfo%", backupData.getCause() == null ? "---" : backupData.getCause(),
                         "%location%", backupData.getLocation().getReadable(),
-                        "%date%", DateUtils.formatDate(backupData.getDate())
+                        "%date%", DateUtils.formatDate(backupData.getDate()),
+                        "%level%", String.valueOf(backupData.getExpLevel())
                 )
         );
     }

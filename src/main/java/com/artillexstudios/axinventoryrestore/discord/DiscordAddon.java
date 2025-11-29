@@ -65,6 +65,7 @@ public class DiscordAddon extends ListenerAdapter {
         replacements.put("%category%", LANG.getString("categories." + backupData.getReason() + ".raw", "---"));
         replacements.put("%cause%", backupData.getCause() == null ? "---" : backupData.getCause());
         replacements.put("%location%", backupData.getLocation().getReadable());
+        replacements.put("%level%", String.valueOf(backupData.getExpLevel()));
 
         if (ClassUtils.INSTANCE.classExists("net.luckperms.api.LuckPerms")) {
             RegisteredServiceProvider<net.luckperms.api.LuckPerms> provider = Bukkit.getServicesManager().getRegistration(net.luckperms.api.LuckPerms.class);
