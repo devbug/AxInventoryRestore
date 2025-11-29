@@ -5,6 +5,7 @@ import com.artillexstudios.axinventoryrestore.AxInventoryRestore;
 import com.artillexstudios.axinventoryrestore.events.Webhooks;
 import com.artillexstudios.axinventoryrestore.hooks.HookManager;
 import com.artillexstudios.axinventoryrestore.schedulers.AutoBackupScheduler;
+import com.artillexstudios.axinventoryrestore.utils.ConfigDefaults;
 import com.artillexstudios.axinventoryrestore.utils.DateUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -21,13 +22,13 @@ public enum Reload {
 
     public void execute(CommandSender sender) {
         Bukkit.getConsoleSender().sendMessage(StringUtils.formatToString("&#00aaff[AxInventoryRestore] &#66aaffReloading configuration..."));
-        if (!CONFIG.reload()) {
+        if (!CONFIG.reload() || !ConfigDefaults.addMissing(CONFIG)) {
             MESSAGEUTILS.sendLang(sender, "reload-fail", Collections.singletonMap("%file%", "config.yml"));
             return;
         }
         Bukkit.getConsoleSender().sendMessage(StringUtils.formatToString("&#00aaff╠ &#00FF00Reloaded &fconfig.yml&#00FF00!"));
 
-        if (!LANG.reload()) {
+        if (!LANG.reload() || !ConfigDefaults.addMissing(LANG)) {
             MESSAGEUTILS.sendLang(sender, "reload-fail", Collections.singletonMap("%file%", "messages.yml"));
             return;
         }

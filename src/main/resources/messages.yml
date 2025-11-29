@@ -35,6 +35,7 @@ restored-shulker:
     - " "
     - " &7- &#00FFFFDate: &f%date%"
     - " &7- &#00FFFFLocation: &f%location%"
+    - " &7- &#00FFFFExp Level: &f%level%"
     - " &7- &#00FFFFGiven to: &f%staff%"
     - " "
 
@@ -56,6 +57,7 @@ guis:
         - "&#00FFFFCategory: &f%category%"
         - "&#00FFFFInfo: &f%cause%"
         - "&#00FFFFLocation: &f%location%"
+        - "&#00FFFFExp Level: &f%level%"
         - " "
         - "&#00CCFF&l(!) &#00CCFFClick here to check items!"
   previewgui:
@@ -94,6 +96,25 @@ guis:
         - " &7- &#00FFFFEmpty slots needed: &f%shulker-amount%"
         - " "
         - "&#00CCFF&l(!) &#00CCFFClick here to export items!"
+    exp-info:
+      material: EXPERIENCE_BOTTLE
+      name: "&#00FF00&lExperience Info"
+      lore:
+        - " "
+        - " &7- &#00FFFFLevel: &f%level%"
+        - " &7- &#00FFFFProgress: &f%progress%"
+        - " "
+        - "&#00CCFF&l(!) &#00CCFFClick to restore experience only"
+    restore-exp:
+      material: EXPERIENCE_BOTTLE
+      name: "&#00FF00&lRestore Experience"
+      lore:
+        - " "
+        - " &7- &#00FFFFLevel: &f%level%"
+        - " &7- &#00FFFFProgress: &f%progress%"
+        - " &7- &#00FFFFThe player must be online for this to work!"
+        - " "
+        - "&#00CCFF&l(!) &#00CCFFClick here to restore experience!"
 
 gui-items:
   close:
@@ -190,6 +211,8 @@ commands:
   player-only: "&#FF0000You must be a player to use this command!"
   invalid-player: "&#FF0000The player &#BB0000%player% &#FF0000can not be found!"
   invalid-selector: "&#FF0000You can not use this selector in this command!"
+
+exp-restored: "&#33FF33Successfully restored experience! &7(Level: %level%)"
 
 update-notifier: "&#88CCFFThere is a new version of AxInventoryRestore available! &#DDDDDD(&#FFFFFFcurrent: &#FF0000%current% &#DDDDDD| &#FFFFFFlatest: &#00FF00%latest%&#DDDDDD)"
 

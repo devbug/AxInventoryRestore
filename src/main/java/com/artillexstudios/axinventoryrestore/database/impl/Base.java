@@ -125,6 +125,21 @@ public abstract class Base implements Database {
             stmt.executeUpdate();
         } catch (SQLException ignored) {
         }
+
+        // Add experience columns if they don't exist (migration for existing databases)
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(
+                "ALTER TABLE axir_backups ADD COLUMN exp_level INT DEFAULT 0")) {
+            stmt.executeUpdate();
+        } catch (SQLException ignored) {
+            // Column already exists
+        }
+
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(
+                "ALTER TABLE axir_backups ADD COLUMN exp_progress FLOAT DEFAULT 0")) {
+            stmt.executeUpdate();
+        } catch (SQLException ignored) {
+            // Column already exists
+        }
     }
 
     @Nullable
@@ -277,8 +292,10 @@ public abstract class Base implements Database {
         long time = System.currentTimeMillis();
         if (AxInventoryRestore.isDebugMode()) LogUtils.debug("Creating backup for {} [reason: {}] [cause: {}]", player.getName(), reason, cause);
 
-        final String sql = "INSERT INTO axir_backups(userId, reasonId, worldId, x, y, z, inventoryId, time, cause) VALUES (?,?,?,?,?,?,?,?,?);";
+        final String sql = "INSERT INTO axir_backups(userId, reasonId, worldId, x, y, z, inventoryId, time, cause, exp_level, exp_progress) VALUES (?,?,?,?,?,?,?,?,?,?,?);";
         final Location location = player.getLocation();
+        final int expLevel = CONFIG.getBoolean("experience.backup-enabled", true) ? player.getLevel() : 0;
+        final float expProgress = CONFIG.getBoolean("experience.backup-enabled", true) ? player.getExp() : 0f;
 
         AxInventoryRestore.getThreadedQueue().submit(() -> {
             if (AxInventoryRestore.isDebugMode()) LogUtils.debug("ThreadedQueue submit for {} in {}ms", player.getName(), System.currentTimeMillis() - time);
@@ -316,6 +333,8 @@ public abstract class Base implements Database {
                 stmt.setInt(7, storedId);
                 stmt.setLong(8, System.currentTimeMillis());
                 stmt.setString(9, cause);
+                stmt.setInt(10, expLevel);
+                stmt.setFloat(11, expProgress);
                 stmt.executeUpdate();
             } catch (Exception exception) {
                 log.error("An unexpected error occurred while saving inventory of user {}!", player.getName(), exception);
@@ -417,7 +436,7 @@ public abstract class Base implements Database {
             backup.finish();
             return;
         }
-        String sql = "SELECT id, userId, reasonid, worldId, x, y, z, time, cause, inventoryId FROM axir_backups WHERE userId = ? ORDER BY time DESC;";
+        String sql = "SELECT id, userId, reasonid, worldId, x, y, z, time, cause, inventoryId, exp_level, exp_progress FROM axir_backups WHERE userId = ? ORDER BY time DESC;";
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
 
@@ -442,7 +461,7 @@ public abstract class Base implements Database {
         long maxTime = Duration.ofSeconds(CONFIG.getInt("search.timeout-seconds", 10)).toMillis();
         Semaphore semaphore = new Semaphore(CONFIG.getInt("search.maximum-tasks", 4));
 
-        String sql = "SELECT axir_backups.id AS id, userId, reasonid, worldId, x, y, z, time, cause, inventoryId, inventory FROM axir_backups INNER JOIN axir_storage ON axir_backups.inventoryId = axir_storage.id WHERE time >= ? ORDER BY time DESC;";
+        String sql = "SELECT axir_backups.id AS id, userId, reasonid, worldId, x, y, z, time, cause, inventoryId, exp_level, exp_progress, inventory FROM axir_backups INNER JOIN axir_storage ON axir_backups.inventoryId = axir_storage.id WHERE time >= ? ORDER BY time DESC;";
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, System.currentTimeMillis() - time);
 
@@ -454,7 +473,7 @@ public abstract class Base implements Database {
                     if (backup.isFinished()) return;
                     BackupData backupData = createBackupData(rs);
                     if (backupData == null) continue;
-                    byte[] inventory = rs.getBytes(11);
+                    byte[] inventory = rs.getBytes("inventory");
                     if (inventory == null) continue;
 
                     CompletableFuture<Void> cf = CompletableFuture.supplyAsync(() -> {
@@ -517,7 +536,9 @@ public abstract class Base implements Database {
                 DynamicLocation.of(world, rs.getInt(5), rs.getInt(6), rs.getInt(7)),
                 rs.getLong(8),
                 rs.getString(9),
-                rs.getInt(10)
+                rs.getInt(10),
+                rs.getInt("exp_level"),
+                rs.getFloat("exp_progress")
         );
     }
 
@@ -610,7 +631,7 @@ public abstract class Base implements Database {
 
     @Override
     public BackupData getBackupDataById(int backupId) {
-        final String sql = "SELECT id, userid, reasonid, worldId, x, y, z, time, cause, inventoryId FROM axir_backups WHERE id = ? LIMIT 1;";
+        final String sql = "SELECT id, userid, reasonid, worldId, x, y, z, time, cause, inventoryId, exp_level, exp_progress FROM axir_backups WHERE id = ? LIMIT 1;";
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, backupId);
 
@@ -624,7 +645,9 @@ public abstract class Base implements Database {
                             DynamicLocation.of(world, rs.getInt(5), rs.getInt(6), rs.getInt(7)),
                             rs.getLong(8),
                             rs.getString(9),
-                            rs.getInt(10)
+                            rs.getInt(10),
+                            rs.getInt(11),
+                            rs.getFloat(12)
                     );
                 }
             }

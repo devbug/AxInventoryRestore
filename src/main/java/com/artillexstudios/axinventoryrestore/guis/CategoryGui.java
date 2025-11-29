@@ -55,6 +55,7 @@ public class CategoryGui {
             replacements.put("%date%", DateUtils.formatDate(backupData.getDate()));
             replacements.put("%location%", backupData.getLocation().getReadable());
             replacements.put("%cause%", backupData.getCause() == null ? "---" : backupData.getCause());
+            replacements.put("%level%", String.valueOf(backupData.getExpLevel()));
 
             final ItemStack it = ItemBuilder.create(LANG.getSection("guis.categorygui.item"), replacements).get();
             it.setAmount(n);

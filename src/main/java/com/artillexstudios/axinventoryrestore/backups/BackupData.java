@@ -38,9 +38,11 @@ public class BackupData {
     private final int inventoryId;
     private CompletableFuture<ItemStack[]> future = null;
     private ItemStack[] rawItems = null;
+    private final int expLevel;
+    private final float expProgress;
     private volatile ItemStack[] items = null;
 
-    public BackupData(int id, @NotNull UUID player, @NotNull String reason, @NotNull DynamicLocation location, long date, String cause, int inventoryId) {
+    public BackupData(int id, @NotNull UUID player, @NotNull String reason, @NotNull DynamicLocation location, long date, String cause, int inventoryId, int expLevel, float expProgress) {
         this.id = id;
         this.player = player;
         this.reason = reason;
@@ -48,6 +50,8 @@ public class BackupData {
         this.date = date;
         this.cause = cause;
         this.inventoryId = inventoryId;
+        this.expLevel = expLevel;
+        this.expProgress = expProgress;
     }
 
     public int getId() {
@@ -117,6 +121,18 @@ public class BackupData {
         return cause;
     }
 
+    public int getExpLevel() {
+        return expLevel;
+    }
+
+    public float getExpProgress() {
+        return expProgress;
+    }
+
+    public String getExpProgressFormatted() {
+        return String.format("%.1f%%", expProgress * 100);
+    }
+
     public CompletableFuture<ArrayList<ItemStack>> getInShulkers(@NotNull String restorerName) {
         return getItems().thenApply(items -> {
             ArrayList<ItemStack> shulkerItems = new ArrayList<>();
@@ -129,6 +145,7 @@ public class BackupData {
                 replacements.put("%cause%", cause == null ? "---" : cause);
                 replacements.put("%staff%", restorerName);
                 replacements.put("%player-uuid%", player.toString());
+                replacements.put("%level%", String.valueOf(expLevel));
 
                 ItemStack shulkerIt = ItemBuilder.create(LANG.getSection("restored-shulker"), replacements).get();
                 BlockStateMeta im = (BlockStateMeta) shulkerIt.getItemMeta();
