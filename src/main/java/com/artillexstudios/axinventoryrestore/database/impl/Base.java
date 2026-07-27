@@ -11,6 +11,7 @@ import com.artillexstudios.axinventoryrestore.backups.BackupData;
 import com.artillexstudios.axinventoryrestore.database.Database;
 import com.artillexstudios.axinventoryrestore.events.AxirEvents;
 import com.artillexstudios.axinventoryrestore.utils.BackupLimiter;
+import com.artillexstudios.axinventoryrestore.utils.SearchUtils;
 import com.google.common.collect.HashBiMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -31,12 +32,15 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.CONFIG;
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.DISCORD;
@@ -397,7 +401,8 @@ public abstract class Base implements Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     String name = rs.getString(1);
-                    final World world = Bukkit.getWorld(name);
+                    World world = Bukkit.getWorld(name);
+                    if (world == null) return null;
                     worldCache.put(id, name);
                     return world;
                 }
@@ -409,33 +414,115 @@ public abstract class Base implements Database {
     }
 
     @Override
-    public Backup getBackupsOfPlayer(@NotNull UUID uuid) {
+    public void loadBackupsOfPlayer(Backup backup, UUID uuid) {
         Integer userId = getUserId(uuid);
-        if (userId == null) return null;
-        List<BackupData> backups = new LinkedList<>();
-        String sql = "SELECT id, reasonid, worldId, x, y, z, time, cause, inventoryId FROM axir_backups WHERE userId = ? ORDER BY time DESC;";
+        if (userId == null) {
+            backup.finish();
+            return;
+        }
+        String sql = "SELECT id, userId, reasonid, worldId, x, y, z, time, cause, inventoryId FROM axir_backups WHERE userId = ? ORDER BY time DESC;";
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    final World world = getWorld(rs.getInt(3));
-                    if (world == null) continue;
-                    backups.add(new BackupData(rs.getInt(1),
-                            uuid,
-                            getReasonName(rs.getInt(2)),
-                            new Location(world, rs.getInt(4), rs.getInt(5), rs.getInt(6)),
-                            rs.getLong(7),
-                            rs.getString(8),
-                            rs.getInt(9))
-                    );
+                    BackupData backupData = createBackupData(rs);
+                    if (backupData == null) continue;
+                    if (backup.isFinished()) return;
+                    backup.addData(backupData);
                 }
             }
         } catch (SQLException exception) {
             log.error("An unexpected error occurred while getting backups of player {}!", uuid, exception);
         }
+        backup.finish();
+    }
 
-        return new Backup(backups);
+    @Override
+    public void loadBackupsFromSearch(Backup backup, long time, @NotNull String search, int limit) {
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        long start = System.currentTimeMillis();
+        long maxTime = Duration.ofSeconds(CONFIG.getInt("search.timeout-seconds", 10)).toMillis();
+        Semaphore semaphore = new Semaphore(CONFIG.getInt("search.maximum-tasks", 4));
+
+        String sql = "SELECT axir_backups.id AS id, userId, reasonid, worldId, x, y, z, time, cause, inventoryId, inventory FROM axir_backups INNER JOIN axir_storage ON axir_backups.inventoryId = axir_storage.id WHERE time >= ? ORDER BY time DESC;";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, System.currentTimeMillis() - time);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                AtomicInteger limitLeft = new AtomicInteger(limit);
+                AtomicInteger processed = new AtomicInteger();
+                AtomicInteger matches = new AtomicInteger();
+                while (rs.next()) {
+                    if (backup.isFinished()) return;
+                    BackupData backupData = createBackupData(rs);
+                    if (backupData == null) continue;
+                    byte[] inventory = rs.getBytes(11);
+                    if (inventory == null) continue;
+
+                    CompletableFuture<Void> cf = CompletableFuture.supplyAsync(() -> {
+                        try {
+                            semaphore.acquire();
+                            if (System.currentTimeMillis() - start > maxTime) return null;
+                            if (backup.isFinished()) return null;
+                            if (limitLeft.get() <= 0) return null;
+                            ItemStack[] items = Serializers.ITEM_ARRAY.deserialize(inventory);
+                            if (items == null) return null;
+                            processed.incrementAndGet();
+
+                            boolean matching = false;
+                            for (ItemStack item : items) {
+                                if (item == null) continue;
+                                boolean match = SearchUtils.matchesFilter(search, item);
+                                if (match) {
+                                    matching = true;
+                                    break;
+                                }
+                            }
+                            if (!matching) return null;
+
+                            if (AxInventoryRestore.isDebugMode()) LogUtils.debug("matching! %s/%s".formatted(matches.incrementAndGet(), processed.get()));
+                            backupData.setItems(items);
+                            backup.addData(backupData);
+                            limitLeft.decrementAndGet();
+                            return null;
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        } finally {
+                            semaphore.release();
+                        }
+                        return null;
+                    });
+                    futures.add(cf);
+                }
+            }
+        } catch (SQLException exception) {
+            log.error("An unexpected error occurred while getting backups from search {}!", search, exception);
+        }
+
+        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenRun(() -> {
+            if (AxInventoryRestore.isDebugMode()) LogUtils.debug("time took: %sms".formatted(System.currentTimeMillis() - start));
+            backup.finish();
+        });
+    }
+
+    @Nullable
+    private BackupData createBackupData(ResultSet rs) throws SQLException {
+        UUID uuid = getUserUUID(rs.getInt(2));
+        if (uuid == null) return null;
+        String reasonName = getReasonName(rs.getInt(3));
+        if (reasonName == null) return null;
+        World world = getWorld(rs.getInt(4));
+        if (world == null) return null;
+
+        return new BackupData(rs.getInt(1),
+                uuid,
+                reasonName,
+                new Location(world, rs.getInt(5), rs.getInt(6), rs.getInt(7)),
+                rs.getLong(8),
+                rs.getString(9),
+                rs.getInt(10)
+        );
     }
 
     public Integer getLastBackupInventoryId(int userId) {

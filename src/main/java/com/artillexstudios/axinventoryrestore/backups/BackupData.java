@@ -34,6 +34,8 @@ public class BackupData {
     private final long date;
     private final String cause;
     private final int inventoryId;
+    private CompletableFuture<ItemStack[]> future = null;
+    private ItemStack[] rawItems = null;
     private volatile ItemStack[] items = null;
 
     public BackupData(int id, @NotNull UUID player, @NotNull String reason, @NotNull Location location, long date, String cause, int inventoryId) {
@@ -59,9 +61,10 @@ public class BackupData {
             return CompletableFuture.completedFuture(this.items);
         }
 
-        CompletableFuture<ItemStack[]> future = new CompletableFuture<>();
+        if (future != null) return future;
+        future = new CompletableFuture<>();
         AxInventoryRestore.getThreadedQueue().submit(() -> {
-            ItemStack[] items = AxInventoryRestore.getDatabase().getItemsFromBackup(inventoryId);
+            ItemStack[] items = rawItems != null ? rawItems : AxInventoryRestore.getDatabase().getItemsFromBackup(inventoryId);
             AxShulkersHook hook = HookManager.getAxShulkersHook();
             if (hook == null) {
                 future.complete(items);
@@ -70,8 +73,7 @@ public class BackupData {
 
             List<CompletableFuture<ItemStack>> futures = new ArrayList<>();
             for (ItemStack item : items) {
-                if (item == null || item.getType().isAir()) continue;
-
+                if (!hook.isShulker(item)) continue;
                 CompletableFuture<ItemStack> itemFuture = new CompletableFuture<>();
                 Scheduler.get().run(task -> {
                     hook.clean(item);
@@ -86,6 +88,10 @@ public class BackupData {
             });
         }, Priority.HIGH);
         return future;
+    }
+
+    public void setItems(ItemStack[] items) {
+        this.rawItems = items;
     }
 
     public long getDate() {

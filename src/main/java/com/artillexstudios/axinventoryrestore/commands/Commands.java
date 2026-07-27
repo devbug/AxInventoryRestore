@@ -5,6 +5,7 @@ import com.artillexstudios.axinventoryrestore.commands.subcommands.Help;
 import com.artillexstudios.axinventoryrestore.commands.subcommands.Reload;
 import com.artillexstudios.axinventoryrestore.commands.subcommands.Save;
 import com.artillexstudios.axinventoryrestore.commands.subcommands.SaveAll;
+import com.artillexstudios.axinventoryrestore.commands.subcommands.Search;
 import com.artillexstudios.axinventoryrestore.commands.subcommands.View;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -52,5 +53,11 @@ public class Commands {
     @CommandPermission("axinventoryrestore.manualbackup")
     public void saveAll(CommandSender sender) {
         SaveAll.INSTANCE.execute(sender);
+    }
+
+    @Subcommand("search")
+    @CommandPermission("axinventoryrestore.search")
+    public void search(Player sender, String search) {
+        Search.INSTANCE.execute(sender, search);
     }
 }

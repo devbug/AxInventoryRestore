@@ -3,43 +3,43 @@ package com.artillexstudios.axinventoryrestore.guis;
 import com.artillexstudios.axapi.utils.ItemBuilder;
 import com.artillexstudios.axapi.utils.StringUtils;
 import com.artillexstudios.axinventoryrestore.backups.BackupData;
+import com.artillexstudios.axinventoryrestore.search.OpenDetails;
 import com.artillexstudios.axinventoryrestore.utils.DateUtils;
 import com.artillexstudios.axinventoryrestore.utils.LocationUtils;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Optional;
 
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.CONFIG;
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.LANG;
 
 public class CategoryGui {
+    private final OpenDetails details;
     private final PaginatedGui categoryGui;
-    private final MainGui mainGui;
     private final Player viewer;
-    private final UUID restoreUser;
     private final List<BackupData> backupDataList;
     private final PaginatedGui lastGui;
     private final int pageNum;
     private final int rows = CONFIG.getInt("menu-rows.backup-selector", 4);
 
-    public CategoryGui(@NotNull MainGui mainGui, List<BackupData> backupDataList, PaginatedGui lastGui, int pageNum) {
-        this.mainGui = mainGui;
-        this.viewer = mainGui.getViewer();
-        this.restoreUser = mainGui.getRestoreUser();
+    public CategoryGui(OpenDetails details, Player viewer, List<BackupData> backupDataList, PaginatedGui lastGui, int pageNum) {
+        this.details = details;
+        this.viewer = viewer;
         this.backupDataList = backupDataList;
         this.lastGui = lastGui;
         this.pageNum = pageNum;
 
         categoryGui = Gui.paginated()
-                .title(StringUtils.format(LANG.getString("guis.categorygui.title").replace("%player%", mainGui.getName())))
+                .title(StringUtils.format(LANG.getString("guis.categorygui.title").replace("%player%", details.getName())))
                 .rows(rows)
                 .pageSize(rows * 9 - 9)
                 .create();
@@ -48,11 +48,11 @@ public class CategoryGui {
     public void open() {
         categoryGui.clearPageItems();
 
-        final CategoryGui cGui = this;
         int n = 1;
         for (BackupData backupData : backupDataList) {
-            final Map<String, String> replacements = new HashMap<>();
-
+            Map<String, String> replacements = new HashMap<>();
+            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(backupData.getPlayerUUID());
+            replacements.put("%player%", Optional.ofNullable(offlinePlayer.getName()).orElse(offlinePlayer.getUniqueId().toString()));
             replacements.put("%category%", LANG.getString("categories." + backupData.getReason() + ".raw", backupData.getReason()));
             replacements.put("%date%", DateUtils.formatDate(backupData.getDate()));
             replacements.put("%location%", LocationUtils.serializeLocationReadable(backupData.getLocation()));
@@ -62,7 +62,7 @@ public class CategoryGui {
             it.setAmount(n);
 
             categoryGui.addItem(new GuiItem(it, event -> {
-                new PreviewGui(cGui, backupData, categoryGui, categoryGui.getCurrentPageNum()).open();
+                new PreviewGui(details, viewer, backupData, categoryGui, categoryGui.getCurrentPageNum()).open();
             }));
 
             n++;
@@ -80,26 +80,24 @@ public class CategoryGui {
 
         categoryGui.setDefaultClickAction(event -> event.setCancelled(true));
 
-        categoryGui.setItem(rows, 5, new GuiItem(ItemBuilder.create(LANG.getSection("gui-items.back")).get(), event2 -> {
-            lastGui.open(viewer, pageNum);
-        }));
+        if (lastGui != null) {
+            categoryGui.setItem(rows, 5, new GuiItem(ItemBuilder.create(LANG.getSection("gui-items.back")).get(), event2 -> {
+                lastGui.open(viewer, pageNum);
+            }));
+        }
 
         categoryGui.open(viewer);
-    }
-
-    public Player getViewer() {
-        return viewer;
-    }
-
-    public UUID getRestoreUser() {
-        return restoreUser;
     }
 
     public PaginatedGui getCategoryGui() {
         return categoryGui;
     }
 
-    public MainGui getMainGui() {
-        return mainGui;
+    public OpenDetails getDetails() {
+        return details;
+    }
+
+    public Player getViewer() {
+        return viewer;
     }
 }

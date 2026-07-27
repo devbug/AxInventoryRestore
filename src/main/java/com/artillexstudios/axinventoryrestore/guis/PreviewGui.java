@@ -8,6 +8,7 @@ import com.artillexstudios.axinventoryrestore.AxInventoryRestore;
 import com.artillexstudios.axinventoryrestore.backups.BackupData;
 import com.artillexstudios.axinventoryrestore.discord.DiscordAddon;
 import com.artillexstudios.axinventoryrestore.events.AxirEvents;
+import com.artillexstudios.axinventoryrestore.search.OpenDetails;
 import com.artillexstudios.axinventoryrestore.utils.LocationUtils;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
@@ -16,33 +17,29 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
-import java.util.UUID;
 
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.LANG;
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.MESSAGEUTILS;
 
 public class PreviewGui {
+    private final OpenDetails details;
     private final Gui previewGui;
-    private final CategoryGui categoryGui;
     private final Player viewer;
-    private final UUID restoreUser;
     private final BackupData backupData;
     private final PaginatedGui lastGui;
     private final int pageNum;
 
-    public PreviewGui(@NotNull CategoryGui categoryGui, BackupData backupData, PaginatedGui lastGui, int pageNum) {
-        this.categoryGui = categoryGui;
-        this.viewer = categoryGui.getViewer();
-        this.restoreUser = categoryGui.getRestoreUser();
+    public PreviewGui(OpenDetails details, Player viewer, BackupData backupData, PaginatedGui lastGui, int pageNum) {
+        this.details = details;
+        this.viewer = viewer;
         this.backupData = backupData;
         this.lastGui = lastGui;
         this.pageNum = pageNum;
 
         previewGui = Gui.gui()
-                .title(StringUtils.format(LANG.getString("guis.previewgui.title").replace("%player%", categoryGui.getMainGui().getName())))
+                .title(StringUtils.format(LANG.getString("guis.previewgui.title").replace("%player%", details.getName())))
                 .rows(6)
                 .create();
     }
@@ -99,7 +96,7 @@ public class PreviewGui {
                     return;
                 }
 
-                final Player player = Bukkit.getPlayer(restoreUser);
+                Player player = Bukkit.getPlayer(backupData.getPlayerUUID());
                 if (player == null) {
                     MESSAGEUTILS.sendLang(viewer, "errors.player-offline");
                     return;
@@ -156,5 +153,17 @@ public class PreviewGui {
 
         previewGui.open(viewer);
         if (AxInventoryRestore.isDebugMode()) LogUtils.debug("Preview gui opened for {} in {}ms", viewer.getName(), System.currentTimeMillis() - time);
+    }
+
+    public Gui getPreviewGui() {
+        return previewGui;
+    }
+
+    public OpenDetails getDetails() {
+        return details;
+    }
+
+    public Player getViewer() {
+        return viewer;
     }
 }

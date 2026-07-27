@@ -47,6 +47,7 @@ guis:
       name: "&#00CCFFDate: &#00EEFF%date%"
       lore:
         - " "
+        - "&#00FFFFPlayer: &f%player%"
         - "&#00FFFFCategory: &f%category%"
         - "&#00FFFFInfo: &f%cause%"
         - "&#00FFFFLocation: &f%location%"

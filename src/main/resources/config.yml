@@ -78,6 +78,16 @@ save-limits:
 # check out the discord.yml for more info
 enable-discord-addon: false
 
+# settings for /axir search
+search:
+  # after how many matching backups should the plugin stop searching?
+  maximum-matches: 1000
+  # after how many seconds should the plugin stop up searching?
+  # search is quite resource intensive, so it is recommended to keep this relatively low
+  timeout-seconds: 60
+  # how many search tasks threads can run at a time? these run asynchronously, however if you set this high, it can overload the cpu
+  maximum-tasks: 4
+
 # should be plugin notify you if there is a new update?
 update-notifier:
   # if enabled, it will display the message in the console
@@ -90,4 +100,4 @@ update-notifier:
 debug: false
 
 # do not change this
-version: 8
+version: 9

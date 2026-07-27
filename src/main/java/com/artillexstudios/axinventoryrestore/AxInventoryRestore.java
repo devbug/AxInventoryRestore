@@ -11,6 +11,7 @@ import com.artillexstudios.axapi.libs.boostedyaml.settings.updater.UpdaterSettin
 import com.artillexstudios.axapi.metrics.AxMetrics;
 import com.artillexstudios.axapi.utils.MessageUtils;
 import com.artillexstudios.axapi.utils.featureflags.FeatureFlags;
+import com.artillexstudios.axapi.utils.logging.LoggerNameFormat;
 import com.artillexstudios.axdiscordwebhooks.builder.WebhookMigrator;
 import com.artillexstudios.axinventoryrestore.commands.CommandManager;
 import com.artillexstudios.axinventoryrestore.database.Database;
@@ -24,12 +25,11 @@ import com.artillexstudios.axinventoryrestore.libraries.Libraries;
 import com.artillexstudios.axinventoryrestore.listeners.ListenerManager;
 import com.artillexstudios.axinventoryrestore.queue.PriorityThreadedQueue;
 import com.artillexstudios.axinventoryrestore.schedulers.AutoBackupScheduler;
+import com.artillexstudios.axinventoryrestore.schedulers.GuiUpdater;
 import com.artillexstudios.axinventoryrestore.utils.UpdateNotifier;
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.SimplePie;
 import org.jetbrains.annotations.Nullable;
-import revxrsal.zapper.DependencyManager;
-import revxrsal.zapper.relocation.Relocation;
 
 import java.io.File;
 
@@ -73,18 +73,7 @@ public final class AxInventoryRestore extends AxPlugin {
     @Override
     public void dependencies(DependencyManagerWrapper manager) {
         instance = this;
-        manager.repository("https://jitpack.io/");
-        manager.repository("https://repo.codemc.org/repository/maven-public/");
-        manager.repository("https://repo.papermc.io/repository/maven-public/");
-        manager.repository("https://repo.artillex-studios.com/releases/");
-
-        DependencyManager dependencyManager = manager.wrapped();
-        for (Libraries lib : Libraries.values()) {
-            dependencyManager.dependency(lib.fetchLibrary());
-            for (Relocation relocation : lib.relocations()) {
-                dependencyManager.relocate(relocation);
-            }
-        }
+        Libraries.load(instance, manager);
     }
 
     @Override
@@ -118,6 +107,7 @@ public final class AxInventoryRestore extends AxPlugin {
         HookManager.setupHooks();
         CommandManager.load();
         AutoBackupScheduler.start();
+        GuiUpdater.start();
         ListenerManager.register();
 
         boolean loadDiscordAddon = CONFIG.getBoolean("enable-discord-addon", false);
@@ -135,6 +125,7 @@ public final class AxInventoryRestore extends AxPlugin {
     public void disable() {
         if (metrics != null) metrics.cancel();
         AutoBackupScheduler.stop();
+        GuiUpdater.stop();
         Webhooks.stop();
         threadedQueue.stop();
         database.disable();
@@ -143,5 +134,6 @@ public final class AxInventoryRestore extends AxPlugin {
     @Override
     public void updateFlags() {
         FeatureFlags.USE_LEGACY_HEX_FORMATTER.set(true);
+        FeatureFlags.LOGGER_NAME_FORMAT.set(LoggerNameFormat.NAMEABLE);
     }
 }

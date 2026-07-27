@@ -4,6 +4,7 @@ import com.artillexstudios.axapi.scheduler.Scheduler;
 import com.artillexstudios.axinventoryrestore.AxInventoryRestore;
 import com.artillexstudios.axinventoryrestore.guis.MainGui;
 import com.artillexstudios.axinventoryrestore.queue.Priority;
+import com.artillexstudios.axinventoryrestore.search.OpenDetails;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -19,25 +20,28 @@ public enum View {
 
     public void execute(Player sender, String player) {
         AxInventoryRestore.getThreadedQueue().submit(() -> {
-            UUID uuid = getUUID(sender, player);
-            if (uuid == null) return;
+            UUID uuid = getUUID(player);
+            if (uuid == null) {
+                MESSAGEUTILS.sendLang(sender, "errors.unknown-player", Map.of("%number%", "name not found"));
+                return;
+            }
 
             String name = Bukkit.getOfflinePlayer(uuid).getName();
             Scheduler.get().run(sender, task -> {
-                new MainGui(uuid, sender, Optional.ofNullable(name).orElse(player)).open();
+                new MainGui(
+                        OpenDetails.player(uuid, Optional.ofNullable(name).orElse(player)),
+                        sender
+                ).open();
             }, () -> {});
         }, Priority.HIGH);
     }
 
     @Nullable
-    private UUID getUUID(Player sender, String value) {
+    private UUID getUUID(String value) {
         UUID uuid = tryParseUUID(value);
         if (uuid != null) return uuid;
         uuid = AxInventoryRestore.getDatabase().getUUID(value);
-        if (uuid != null) return uuid;
-
-        MESSAGEUTILS.sendLang(sender, "errors.unknown-player", Map.of("%number%", "name not found"));
-        return null;
+        return uuid;
     }
 
     @Nullable

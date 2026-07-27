@@ -39,7 +39,9 @@ public interface Database {
     @Nullable
     World getWorld(int id);
 
-    Backup getBackupsOfPlayer(@NotNull UUID uuid);
+    void loadBackupsOfPlayer(Backup backup, UUID uuid);
+
+    void loadBackupsFromSearch(Backup backup, long time, @NotNull String search, int limit);
 
     void join(@NotNull Player player);
 
