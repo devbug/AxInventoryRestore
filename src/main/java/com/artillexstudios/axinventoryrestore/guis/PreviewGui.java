@@ -144,7 +144,9 @@ public class PreviewGui {
                         return;
                     }
 
-                    discordAddon.sendRequest((Player) event.getWhoClicked(), backupData);
+                    discordAddon.sendRequest((Player) event.getWhoClicked(), backupData).thenAccept(success -> {
+                        MESSAGEUTILS.sendLang(viewer, "discord-request." + (success ? "success" : "failure"));
+                    });
                 }));
             }
 

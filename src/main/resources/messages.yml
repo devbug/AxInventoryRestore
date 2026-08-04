@@ -37,6 +37,10 @@ restored-shulker:
     - " &7- &#00FFFFGiven to: &f%staff%"
     - " "
 
+discord-request:
+  success: "&#33FF33You have successfully sent the restore request."
+  failure: "&#FF3333Failed to send restore request. Check the console for errors."
+
 guis:
   maingui:
     title: "&0&lRestore > &8%player%"
@@ -189,4 +193,4 @@ commands:
 update-notifier: "&#88CCFFThere is a new version of AxInventoryRestore available! &#DDDDDD(&#FFFFFFcurrent: &#FF0000%current% &#DDDDDD| &#FFFFFFlatest: &#00FF00%latest%&#DDDDDD)"
 
 # do not change this
-version: 7
+version: 8

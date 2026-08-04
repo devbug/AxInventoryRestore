@@ -25,6 +25,9 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.DISCORD;
 import static com.artillexstudios.axinventoryrestore.AxInventoryRestore.LANG;
@@ -34,7 +37,7 @@ public class DiscordAddon extends ListenerAdapter {
 
     public DiscordAddon() {
         if (DISCORD.getString("token").isBlank()) return;
-        final JDABuilder jdaBuilder = JDABuilder.createDefault(DISCORD.getString("token"));
+        JDABuilder jdaBuilder = JDABuilder.createDefault(DISCORD.getString("token"));
         jdaBuilder.setActivity(Activity.playing(DISCORD.getString("bot-activity", " ")));
 
         jda = jdaBuilder.build();
@@ -47,16 +50,16 @@ public class DiscordAddon extends ListenerAdapter {
         }
     }
 
-    public void sendRequest(final Player requester, final BackupData backupData) {
-        final TextChannel channel = jda.getTextChannelById(DISCORD.getString("channel-id"));
+    public CompletableFuture<Boolean> sendRequest(Player requester, BackupData backupData) {
+        TextChannel channel = jda.getTextChannelById(DISCORD.getString("channel-id"));
         if (channel == null) {
-            Bukkit.getLogger().warning("Discord channel with id " + DISCORD.getString("channel-id") + " was not found!");
-            return;
+            Bukkit.getConsoleSender().sendMessage(StringUtils.formatToString("&#FF0000[AxInventoryRestore] Discord channel with id %s not found!".formatted(DISCORD.getString("channel-id"))));
+            return CompletableFuture.completedFuture(false);
         }
 
         int id = AxInventoryRestore.getDatabase().addRestoreRequest(backupData.getId());
 
-        final HashMap<String, String> replacements = new HashMap<>();
+        Map<String, String> replacements = new HashMap<>();
         replacements.put("%player%", Bukkit.getOfflinePlayer(backupData.getPlayerUUID()).getName());
         replacements.put("%requester%", requester.getName());
         replacements.put("%date%", DateUtils.formatDate(backupData.getDate()));
@@ -65,27 +68,34 @@ public class DiscordAddon extends ListenerAdapter {
         replacements.put("%location%", LocationUtils.serializeLocationReadable(backupData.getLocation()));
 
         if (ClassUtils.INSTANCE.classExists("net.luckperms.api.LuckPerms")) {
-            final RegisteredServiceProvider<net.luckperms.api.LuckPerms> provider = Bukkit.getServicesManager().getRegistration(net.luckperms.api.LuckPerms.class);
+            RegisteredServiceProvider<net.luckperms.api.LuckPerms> provider = Bukkit.getServicesManager().getRegistration(net.luckperms.api.LuckPerms.class);
             if (provider != null) {
-                final net.luckperms.api.LuckPerms api = provider.getProvider();
-
-                final net.luckperms.api.context.ImmutableContextSet set = api.getContextManager().getStaticContext();
+                net.luckperms.api.LuckPerms api = provider.getProvider();
+                net.luckperms.api.context.ImmutableContextSet set = api.getContextManager().getStaticContext();
                 if (set.getAnyValue("server").isPresent()) {
-                    final String str = set.getAnyValue("server").get();
+                    String str = set.getAnyValue("server").get();
                     replacements.put("%server%", str);
                 }
             }
         }
 
-        final MessageCreateAction action = channel.sendMessageEmbeds(new JDAEmbedBuilder(DISCORD.getSection("prompt"), replacements).get());
-        action.addActionRow(
+        CompletableFuture<Boolean> cf = new CompletableFuture<>();
+        cf.orTimeout(5, TimeUnit.SECONDS);
+        MessageCreateAction action = channel.sendMessageEmbeds(new JDAEmbedBuilder(DISCORD.getSection("prompt"), replacements).get());
+        action = action.addActionRow(
             Button.success("axir-accept:" + id, DISCORD.getString("messages.restore")),
-            Button.danger("axir-deny:" + id, DISCORD.getString("messages.decline")))
-        .queue((message -> {
-            if (!DISCORD.getBoolean("create-thread", true)) return;
-            channel.createThreadChannel(DISCORD.getString("thread-name", "-"), message.getId()).queue();
+            Button.danger("axir-deny:" + id, DISCORD.getString("messages.decline"))
+        );
+        action.queue((message -> {
+            if (!DISCORD.getBoolean("create-thread", true)) {
+                cf.complete(true);
+                return;
+            }
+            channel.createThreadChannel(DISCORD.getString("thread-name", "-"), message.getId()).queue(threadChannel -> {
+                cf.complete(true);
+            });
         }));
-
+        return cf;
     }
 
     public ItemStack getRequestItem() {
@@ -115,7 +125,7 @@ public class DiscordAddon extends ListenerAdapter {
 
         try {
             event.deferReply().queue(interactionHook -> {
-                final MessageEmbed embed = event.getMessage().getEmbeds().get(0);
+                MessageEmbed embed = event.getMessage().getEmbeds().get(0);
                 event.getMessage().editMessageEmbeds(net.dv8tion.jda.api.EmbedBuilder.fromData(embed.toData())
                                 .setAuthor(event.getUser().getName(), null, event.getUser().getAvatarUrl())
                                 .setColor(Integer.parseInt(DISCORD.getString("messages." + status +"-color").replace("#", ""), 16)).build())
