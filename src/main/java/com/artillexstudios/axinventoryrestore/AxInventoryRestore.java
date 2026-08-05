@@ -133,7 +133,7 @@ public final class AxInventoryRestore extends AxPlugin {
 
     @Override
     public void updateFlags() {
-        FeatureFlags.USE_LEGACY_HEX_FORMATTER.set(true);
+        FeatureFlags.USE_LEGACY_HEX_FORMATTER.set(false);
         FeatureFlags.LOGGER_NAME_FORMAT.set(LoggerNameFormat.NAMEABLE);
     }
 }

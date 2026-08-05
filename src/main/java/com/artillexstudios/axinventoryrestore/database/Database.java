@@ -2,7 +2,7 @@ package com.artillexstudios.axinventoryrestore.database;
 
 import com.artillexstudios.axinventoryrestore.backups.Backup;
 import com.artillexstudios.axinventoryrestore.backups.BackupData;
-import org.bukkit.World;
+import com.artillexstudios.axinventoryrestore.utils.DynamicWorld;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -36,8 +36,7 @@ public interface Database {
 
     int storeWorld(String world);
 
-    @Nullable
-    World getWorld(int id);
+    DynamicWorld getWorld(int id);
 
     void loadBackupsOfPlayer(Backup backup, UUID uuid);
 

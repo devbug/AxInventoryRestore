@@ -7,8 +7,9 @@ import com.artillexstudios.axinventoryrestore.hooks.AxShulkersHook;
 import com.artillexstudios.axinventoryrestore.hooks.HookManager;
 import com.artillexstudios.axinventoryrestore.queue.Priority;
 import com.artillexstudios.axinventoryrestore.utils.DateUtils;
-import com.artillexstudios.axinventoryrestore.utils.LocationUtils;
-import org.bukkit.Location;
+import com.artillexstudios.axinventoryrestore.utils.DynamicLocation;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Tag;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.inventory.ItemStack;
@@ -21,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,7 +32,7 @@ public class BackupData {
     private final int id;
     private final UUID player;
     private final String reason;
-    private final Location location;
+    private final DynamicLocation location;
     private final long date;
     private final String cause;
     private final int inventoryId;
@@ -38,7 +40,7 @@ public class BackupData {
     private ItemStack[] rawItems = null;
     private volatile ItemStack[] items = null;
 
-    public BackupData(int id, @NotNull UUID player, @NotNull String reason, @NotNull Location location, long date, String cause, int inventoryId) {
+    public BackupData(int id, @NotNull UUID player, @NotNull String reason, @NotNull DynamicLocation location, long date, String cause, int inventoryId) {
         this.id = id;
         this.player = player;
         this.reason = reason;
@@ -52,7 +54,7 @@ public class BackupData {
         return id;
     }
 
-    public Location getLocation() {
+    public DynamicLocation getLocation() {
         return location;
     }
 
@@ -102,6 +104,11 @@ public class BackupData {
         return player;
     }
 
+    public String getPlayerName() {
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(player);
+        return Optional.ofNullable(offlinePlayer.getName()).orElse(player.toString());
+    }
+
     public String getReason() {
         return reason;
     }
@@ -118,7 +125,7 @@ public class BackupData {
             while (!itemsCopy.isEmpty()) {
                 Map<String, String> replacements = new HashMap<>();
                 replacements.put("%date%", DateUtils.formatDate(date));
-                replacements.put("%location%", LocationUtils.serializeLocationReadable(location));
+                replacements.put("%location%", location.getReadable());
                 replacements.put("%cause%", cause == null ? "---" : cause);
                 replacements.put("%staff%", restorerName);
                 replacements.put("%player-uuid%", player.toString());

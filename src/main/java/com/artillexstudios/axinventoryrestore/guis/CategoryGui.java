@@ -5,7 +5,6 @@ import com.artillexstudios.axapi.utils.StringUtils;
 import com.artillexstudios.axinventoryrestore.backups.BackupData;
 import com.artillexstudios.axinventoryrestore.search.OpenDetails;
 import com.artillexstudios.axinventoryrestore.utils.DateUtils;
-import com.artillexstudios.axinventoryrestore.utils.LocationUtils;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
@@ -51,11 +50,10 @@ public class CategoryGui {
         int n = 1;
         for (BackupData backupData : backupDataList) {
             Map<String, String> replacements = new HashMap<>();
-            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(backupData.getPlayerUUID());
-            replacements.put("%player%", Optional.ofNullable(offlinePlayer.getName()).orElse(offlinePlayer.getUniqueId().toString()));
+            replacements.put("%player%", backupData.getPlayerName());
             replacements.put("%category%", LANG.getString("categories." + backupData.getReason() + ".raw", backupData.getReason()));
             replacements.put("%date%", DateUtils.formatDate(backupData.getDate()));
-            replacements.put("%location%", LocationUtils.serializeLocationReadable(backupData.getLocation()));
+            replacements.put("%location%", backupData.getLocation().getReadable());
             replacements.put("%cause%", backupData.getCause() == null ? "---" : backupData.getCause());
 
             final ItemStack it = ItemBuilder.create(LANG.getSection("guis.categorygui.item"), replacements).get();

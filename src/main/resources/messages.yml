@@ -24,6 +24,7 @@ errors:
   player-offline: "&#FF3333The player must be online to restore their inventory!"
   unknown-player: "&#FF3333This player has no backups saved! &#DDDDDD(error: %number%)"
   not-player: "&#FF3333You must be a player to execute this command!"
+  world-not-found: "&#FF3333The world of this location doesn't exist or it isn't loaded."
 
 restored-shulker:
   # this must be some kind of shulker box!
@@ -193,4 +194,4 @@ commands:
 update-notifier: "&#88CCFFThere is a new version of AxInventoryRestore available! &#DDDDDD(&#FFFFFFcurrent: &#FF0000%current% &#DDDDDD| &#FFFFFFlatest: &#00FF00%latest%&#DDDDDD)"
 
 # do not change this
-version: 8
+version: 9

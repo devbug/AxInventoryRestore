@@ -1,8 +1,8 @@
 package com.artillexstudios.axinventoryrestore.utils;
 
 import com.artillexstudios.axapi.items.WrappedItemStack;
-import com.artillexstudios.axapi.items.component.DataComponents;
-import com.artillexstudios.axapi.items.component.type.ItemEnchantments;
+import com.artillexstudios.axapi.items.components.DataComponents;
+import com.artillexstudios.axapi.items.components.data.ItemEnchantments;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.enchantments.Enchantment;
@@ -32,32 +32,32 @@ public class SearchUtils {
     }
 
     private static boolean isItemMatching(@NotNull String filter, @NotNull WrappedItemStack wrapped) {
-        String material = wrapped.get(DataComponents.material()).toString();
+        String material = wrapped.get(DataComponents.MATERIAL).toString();
         if (isMatching(filter, material)) return true;
 
-        ItemEnchantments enchantments = wrapped.get(DataComponents.enchantments());
+        ItemEnchantments enchantments = wrapped.get(DataComponents.ENCHANTMENTS);
         if (enchantments != null) {
-            for (Map.Entry<Enchantment, Integer> enchant : enchantments.entrySet()) {
+            for (Map.Entry<Enchantment, Integer> enchant : enchantments.enchantments().object2IntEntrySet()) {
                 String enchantName = enchant.getKey().getKey() + " " + enchant.getValue();
                 if (isMatching(filter, enchantName)) return true;
             }
         }
 
-        ItemEnchantments storedEnchantments = wrapped.get(DataComponents.storedEnchantments());
+        ItemEnchantments storedEnchantments = wrapped.get(DataComponents.STORED_ENCHANTMENTS);
         if (storedEnchantments != null) {
-            for (Map.Entry<Enchantment, Integer> enchant : storedEnchantments.entrySet()) {
+            for (Map.Entry<Enchantment, Integer> enchant : storedEnchantments.enchantments().object2IntEntrySet()) {
                 String enchantName = enchant.getKey().getKey() + " " + enchant.getValue();
                 if (isMatching(filter, enchantName)) return true;
             }
         }
 
-        String customName = serializer.serializeOrNull(wrapped.get(DataComponents.customName()));
+        String customName = serializer.serializeOrNull(wrapped.get(DataComponents.CUSTOM_NAME));
         if (isMatching(filter, customName)) return true;
 
-        String itemName = serializer.serializeOrNull(wrapped.get(DataComponents.itemName()));
+        String itemName = serializer.serializeOrNull(wrapped.get(DataComponents.ITEM_NAME));
         if (isMatching(filter, itemName)) return true;
 
-        for (Component line : wrapped.get(DataComponents.lore()).lines()) {
+        for (Component line : wrapped.get(DataComponents.LORE).lines()) {
             String lore = serializer.serializeOrNull(line);
             if (isMatching(filter, lore)) return true;
         }

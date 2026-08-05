@@ -4,7 +4,7 @@ import com.artillexstudios.axinventoryrestore.api.events.InventoryBackupEvent;
 import com.artillexstudios.axinventoryrestore.api.events.InventoryRestoreEvent;
 import com.artillexstudios.axinventoryrestore.backups.BackupData;
 import com.artillexstudios.axinventoryrestore.utils.DateUtils;
-import com.artillexstudios.axinventoryrestore.utils.LocationUtils;
+import com.artillexstudios.axinventoryrestore.utils.DynamicLocation;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +23,7 @@ public class AxirEvents {
                 Map.of("%player%", player.getName(),
                     "%category%", LANG.getString("categories." + category + ".raw", category),
                     "%extrainfo%", extraInfo == null ? "---" : extraInfo,
-                    "%location%", LocationUtils.serializeLocationReadable(player.getLocation()),
+                    "%location%", DynamicLocation.of(player.getLocation()).getReadable(),
                     "%date%", DateUtils.formatDate(System.currentTimeMillis())
                 )
         );
@@ -35,10 +35,10 @@ public class AxirEvents {
         Bukkit.getPluginManager().callEvent(inventoryRestoreEvent);
         Webhooks.sendRestoreWebhook(
                 Map.of("%restorer%", restorer.getName(),
-                        "%player%", Bukkit.getOfflinePlayer(backupData.getPlayerUUID()).getName(),
+                        "%player%", backupData.getPlayerName(),
                         "%category%", LANG.getString("categories." + backupData.getReason() + ".raw", backupData.getReason()),
                         "%extrainfo%", backupData.getCause() == null ? "---" : backupData.getCause(),
-                        "%location%", LocationUtils.serializeLocationReadable(backupData.getLocation()),
+                        "%location%", backupData.getLocation().getReadable(),
                         "%date%", DateUtils.formatDate(backupData.getDate())
                 )
         );
@@ -47,11 +47,12 @@ public class AxirEvents {
 
     public static void callBackupExportEvent(@NotNull Player restorer, @NotNull BackupData backupData) {
         Webhooks.sendExportWebhook(
-                        Map.of("%restorer%", restorer.getName(),
+                Map.of(
+                        "%restorer%", restorer.getName(),
                         "%category%", LANG.getString("categories." + backupData.getReason() + ".raw", backupData.getReason()),
-                        "%player%", Bukkit.getOfflinePlayer(backupData.getPlayerUUID()).getName(),
+                        "%player%", backupData.getPlayerName(),
                         "%extrainfo%", backupData.getCause() == null ? "---" : backupData.getCause(),
-                        "%location%", LocationUtils.serializeLocationReadable(backupData.getLocation()),
+                        "%location%", backupData.getLocation().getReadable(),
                         "%date%", DateUtils.formatDate(backupData.getDate())
                 )
         );

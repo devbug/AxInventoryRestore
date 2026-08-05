@@ -11,11 +11,12 @@ import com.artillexstudios.axinventoryrestore.backups.BackupData;
 import com.artillexstudios.axinventoryrestore.database.Database;
 import com.artillexstudios.axinventoryrestore.events.AxirEvents;
 import com.artillexstudios.axinventoryrestore.utils.BackupLimiter;
+import com.artillexstudios.axinventoryrestore.utils.DynamicLocation;
+import com.artillexstudios.axinventoryrestore.utils.DynamicWorld;
 import com.artillexstudios.axinventoryrestore.utils.SearchUtils;
 import com.google.common.collect.HashBiMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.PermissionAttachmentInfo;
@@ -384,12 +385,11 @@ public abstract class Base implements Database {
 
     }
 
-    @Nullable
     @Override
-    public World getWorld(int id) {
+    public DynamicWorld getWorld(int id) {
         String worldName = worldCache.get(id);
         if (worldName != null) {
-            return Bukkit.getWorld(worldName);
+            return DynamicWorld.of(worldName);
         }
 
         final String sql = "SELECT name FROM axir_worlds WHERE id = ? LIMIT 1;";
@@ -399,8 +399,7 @@ public abstract class Base implements Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     String name = rs.getString(1);
-                    World world = Bukkit.getWorld(name);
-                    if (world == null) return null;
+                    DynamicWorld world = DynamicWorld.of(name);
                     worldCache.put(id, name);
                     return world;
                 }
@@ -510,13 +509,12 @@ public abstract class Base implements Database {
         if (uuid == null) return null;
         String reasonName = getReasonName(rs.getInt(3));
         if (reasonName == null) return null;
-        World world = getWorld(rs.getInt(4));
-        if (world == null) return null;
+        DynamicWorld world = getWorld(rs.getInt(4));
 
         return new BackupData(rs.getInt(1),
                 uuid,
                 reasonName,
-                new Location(world, rs.getInt(5), rs.getInt(6), rs.getInt(7)),
+                DynamicLocation.of(world, rs.getInt(5), rs.getInt(6), rs.getInt(7)),
                 rs.getLong(8),
                 rs.getString(9),
                 rs.getInt(10)
@@ -618,12 +616,12 @@ public abstract class Base implements Database {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    final World world = getWorld(rs.getInt(4));
+                    DynamicWorld world = getWorld(rs.getInt(4));
                     if (world == null) continue;
                     return new BackupData(rs.getInt(1),
                             getUserUUID(rs.getInt(2)),
                             getReasonName(rs.getInt(3)),
-                            new Location(world, rs.getInt(5), rs.getInt(6), rs.getInt(7)),
+                            DynamicLocation.of(world, rs.getInt(5), rs.getInt(6), rs.getInt(7)),
                             rs.getLong(8),
                             rs.getString(9),
                             rs.getInt(10)

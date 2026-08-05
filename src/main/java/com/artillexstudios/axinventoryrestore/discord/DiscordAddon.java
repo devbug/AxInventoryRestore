@@ -7,7 +7,6 @@ import com.artillexstudios.axinventoryrestore.AxInventoryRestore;
 import com.artillexstudios.axinventoryrestore.backups.BackupData;
 import com.artillexstudios.axinventoryrestore.utils.DateUtils;
 import com.artillexstudios.axinventoryrestore.utils.JDAEmbedBuilder;
-import com.artillexstudios.axinventoryrestore.utils.LocationUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.Permission;
@@ -60,12 +59,12 @@ public class DiscordAddon extends ListenerAdapter {
         int id = AxInventoryRestore.getDatabase().addRestoreRequest(backupData.getId());
 
         Map<String, String> replacements = new HashMap<>();
-        replacements.put("%player%", Bukkit.getOfflinePlayer(backupData.getPlayerUUID()).getName());
+        replacements.put("%player%", backupData.getPlayerName());
         replacements.put("%requester%", requester.getName());
         replacements.put("%date%", DateUtils.formatDate(backupData.getDate()));
         replacements.put("%category%", LANG.getString("categories." + backupData.getReason() + ".raw", "---"));
         replacements.put("%cause%", backupData.getCause() == null ? "---" : backupData.getCause());
-        replacements.put("%location%", LocationUtils.serializeLocationReadable(backupData.getLocation()));
+        replacements.put("%location%", backupData.getLocation().getReadable());
 
         if (ClassUtils.INSTANCE.classExists("net.luckperms.api.LuckPerms")) {
             RegisteredServiceProvider<net.luckperms.api.LuckPerms> provider = Bukkit.getServicesManager().getRegistration(net.luckperms.api.LuckPerms.class);

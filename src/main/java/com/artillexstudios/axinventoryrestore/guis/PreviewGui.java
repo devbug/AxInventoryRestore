@@ -9,11 +9,11 @@ import com.artillexstudios.axinventoryrestore.backups.BackupData;
 import com.artillexstudios.axinventoryrestore.discord.DiscordAddon;
 import com.artillexstudios.axinventoryrestore.events.AxirEvents;
 import com.artillexstudios.axinventoryrestore.search.OpenDetails;
-import com.artillexstudios.axinventoryrestore.utils.LocationUtils;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -75,7 +75,7 @@ public class PreviewGui {
                 event.setCancelled(true);
             }));
 
-            previewGui.setItem(starter + 2, new GuiItem(ItemBuilder.create(LANG.getSection("guis.previewgui.teleport"), Map.of("%location%", LocationUtils.serializeLocationReadable(backupData.getLocation()))).get(), event -> {
+            previewGui.setItem(starter + 2, new GuiItem(ItemBuilder.create(LANG.getSection("guis.previewgui.teleport"), Map.of("%location%", backupData.getLocation().getReadable())).get(), event -> {
                 event.setCancelled(true);
 
                 if (!viewer.hasPermission("axinventoryrestore.teleport")) {
@@ -83,7 +83,12 @@ public class PreviewGui {
                     return;
                 }
 
-                PaperUtils.teleportAsync(viewer, backupData.getLocation());
+                Location location = backupData.getLocation().get();
+                if (location == null) {
+                    MESSAGEUTILS.sendLang(viewer, "errors.world-not-found");
+                    return;
+                }
+                PaperUtils.teleportAsync(viewer, location);
                 viewer.closeInventory();
             }));
 
